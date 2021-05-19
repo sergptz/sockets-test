@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome to Vue</title>
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <div style="margin-bottom: 10px;">
+        <b>Status: </b> {{ status }}
+    </div>
+    <input type="text" v-model="name">
+    <button @click="startGame">Let's play!</button>
+</div>
+
+<script>
+    const app = new Vue({
+        el: '#app',
+        data: {
+            name: '',
+            token: '',
+            socket: null,
+            status: 'Ready to start!'
+        },
+        methods: {
+            startGame() {
+                if (!this.name) return
+                this.socket = new WebSocket("ws://127.0.0.1:8081/api/ready");
+
+                this.socket.onopen = event => {
+                    this.socket.send(JSON.stringify({
+                        type: 'init',
+                        name: this.name
+                    }))
+                }
+
+                this.socket.onmessage = event => this.handleEvent(JSON.parse(event.data))
+
+                this.socket.onclose = event => {
+                    console.log('CLOSING', event)
+                }
+            },
+            handleEvent(data) {
+                console.log('handleEvent', data)
+                if (data.type === 'init') {
+                    this.token = data.token
+                    this.status = 'Waiting for opponent. Token is ' + this.token
+                }
+
+                if (data.type === 'game_start') {
+                    console.log('Game starts! Opponent: ', data.opponent)
+                    this.status = 'Opponent ready! Playing against ' + data.opponent
+                }
+            }
+        }
+    })
+</script>
+</body>
+</html>
